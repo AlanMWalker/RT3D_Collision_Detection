@@ -715,10 +715,6 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 		return false;
 	// ...
 
-	// Next two lines are useful debug code to stop collision with anywhere beneath the pyramid. 
-	// if( min(vert0.y,vert1.y,vert2.y)>colPos.y ) return false;
-	// Remember to remove it once you have implemented part 2 below...
-
 	// Part 2: Work out if the intersection point falls within the triangle
 	//
 	// If the point is inside the triangle then it will be contained by the three new planes defined by:
@@ -726,20 +722,32 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	// 2) RAYPOS, VERT1, VERT2
 	// 3) RAYPOS, VERT2, VERT0
 
+
 	// Move the ray backwards by a tiny bit (one unit) in case the ray is already on the plane
+	XMVECTOR rAdjusted = rayDir * (colDist - 1.0f) + rayPos;
 
 	// ...
 
 	// Step 1: Test against plane 1 and return false if behind plane
+	if (!PointPlane(rayPos, vert0, vert1, rAdjusted))
+	{
+		return false;
+	}
 
 	// ...
 
 	// Step 2: Test against plane 2 and return false if behind plane
-
+	if (!PointPlane(rayPos, vert1, vert2, rAdjusted))
+	{
+		return false;
+	}
 	// ...
 
 	// Step 3: Test against plane 3 and return false if behind plane
-
+	if (!PointPlane(rayPos, vert2, vert0, rAdjusted))
+	{
+		return false;
+	}
 	// ...
 
 	// Step 4: Return true! (on triangle)
@@ -767,21 +775,20 @@ bool HeightMap::PointPlane(const XMVECTOR& vert0, const XMVECTOR& vert1, const X
 	float sD, sNumer;
 
 	// Step 1: Calculate PNORM
-
-	// ...
+	XMVECTOR pNorm = XMVector3Cross(vert1 - vert0, vert2 - vert0);
 
 	// Step 2: Calculate D
-
-	// ...
+	float D;
+	XMStoreFloat(&D, XMVector3Dot(-pNorm, vert0));
 
 	// Step 3: Calculate full equation
+	float PNormDotPointPos = 0.0f, PNormDotVert0 = 0.0f;
 
-	// ...
+	XMStoreFloat(&PNormDotPointPos, XMVector3Dot(pNorm, pointPos));
+	XMStoreFloat(&PNormDotVert0, XMVector3Dot(pNorm, vert0));
 
-	// Step 4: Return false if < 0 (behind plane)
+	if ((PNormDotPointPos - PNormDotVert0) < 0)
+		return false;
 
-	// ...
-
-	// Step 5: Return true! (in front of plane)
 	return true;
 }
