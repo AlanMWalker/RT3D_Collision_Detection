@@ -660,20 +660,12 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	// Step 1: Calculate |COLNORM| 
 	// (Plane normal of triangle)
 	XMVECTOR tNormal = XMVector3Cross(vert1 - vert0, vert2 - vert0);
-	XMFLOAT3 tempNormal;
-	colNormN = XMVector4Normalize(tNormal);
-	XMVECTOR normRayDir = XMVector4Normalize(rayDir);
-	XMStoreFloat3(&tempNormal, colNormN);
-
-	if (fabs(tempNormal.y) > 0.99f)
-	{
-		return false;
-	}
+	colNormN = XMVector3Normalize(tNormal);
+	XMVECTOR normRayDir = XMVector3Normalize(rayDir);
 
 
 	// Note that the variable colNormN is passed through by reference as part of the function parameters so you can calculate and return it!
 	// Next line is useful debug code to stop collision with the top of the inverted pyramid (which has a normal facing straight up). 
-	// if( abs(colNormN.y)>0.99f ) return false;
 	// Remember to remove it once you have implemented part 2 below...
 
 	// ...
@@ -688,13 +680,13 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 		return false;
 	}
 
-	const float D = dotProd*-1.0f;
+	const float D = -dotProd;
 	// ...
 
 	// Step 4: Calculate the numerator of the COLDIST equation: -(D+(|COLNORM| dot RAYPOS))
 	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, rayPos));
 	float colDistNumerator = -(D + dotProd);
-	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, rayDir));
+	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, normRayDir));
 
 	// Step 5: Calculate COLDIST and "early out" again if COLDIST is behind RAYDIR
 	colDist = colDistNumerator / dotProd;
@@ -709,7 +701,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	// ...
 
 	// Step 6: Use COLDIST to calculate COLPOS
-	colPos = normRayDir*colDist + rayPos;
+	colPos = normRayDir * colDist + rayPos;
 	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, colPos));
 	if (dotProd + D < 0)
 		return false;
@@ -724,7 +716,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 
 
 	// Move the ray backwards by a tiny bit (one unit) in case the ray is already on the plane
-	XMVECTOR rAdjusted = normRayDir * (colDist - 1.0f) + rayPos;
+	XMVECTOR rAdjusted = colPos - normRayDir;
 
 	// ...
 
@@ -774,19 +766,13 @@ bool HeightMap::PointPlane(const XMVECTOR& vert0, const XMVECTOR& vert1, const X
 
 	// Step 1: Calculate PNORM
 	XMVECTOR pNorm = XMVector3Cross(vert1 - vert0, vert2 - vert0);
-	pNorm = XMVector4Normalize(pNorm);
+	pNorm = XMVector3Normalize(pNorm);
 	// Step 2: Calculate D
 	float D;
 	XMStoreFloat(&D, -XMVector3Dot(pNorm, vert0));
 
-	// Step 3: Calculate full equation
-	float PNormDotPointPos = 0.0f, PNormDotVert0 = 0.0f;
+	float dp;
+	XMStoreFloat(&dp, XMVector3Dot(pNorm, pointPos));
 
-	XMStoreFloat(&PNormDotPointPos, XMVector3Dot(pNorm, pointPos));
-	XMStoreFloat(&PNormDotVert0, XMVector3Dot(pNorm, vert0));
-
-	if ((PNormDotPointPos - PNormDotVert0) < 0)
-		return false;
-
-	return true;
+	return !(dp + D < 0);
 }
