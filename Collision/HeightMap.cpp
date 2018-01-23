@@ -662,7 +662,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	XMVECTOR tNormal = XMVector3Cross(vert1 - vert0, vert2 - vert0);
 	XMFLOAT3 tempNormal;
 	colNormN = XMVector4Normalize(tNormal);
-
+	XMVECTOR normRayDir = XMVector4Normalize(rayDir);
 	XMStoreFloat3(&tempNormal, colNormN);
 
 	if (fabs(tempNormal.y) > 0.99f)
@@ -709,7 +709,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	// ...
 
 	// Step 6: Use COLDIST to calculate COLPOS
-	colPos = rayDir*colDist + rayPos;
+	colPos = normRayDir*colDist + rayPos;
 	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, colPos));
 	if (dotProd + D < 0)
 		return false;
@@ -724,7 +724,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 
 
 	// Move the ray backwards by a tiny bit (one unit) in case the ray is already on the plane
-	XMVECTOR rAdjusted = rayDir * (colDist - 1.0f) + rayPos;
+	XMVECTOR rAdjusted = normRayDir * (colDist - 1.0f) + rayPos;
 
 	// ...
 
@@ -771,15 +771,13 @@ bool HeightMap::PointPlane(const XMVECTOR& vert0, const XMVECTOR& vert1, const X
 	// --> |PNORM| dot POINTPOS + D < 0
 	// but D = -(|PNORM| dot VERT0 )
 	// --> (|PNORM| dot POINTPOS) - (|PNORM| dot VERT0) < 0
-	XMVECTOR sVec0, sVec1, sNormN;
-	float sD, sNumer;
 
 	// Step 1: Calculate PNORM
 	XMVECTOR pNorm = XMVector3Cross(vert1 - vert0, vert2 - vert0);
-
+	pNorm = XMVector4Normalize(pNorm);
 	// Step 2: Calculate D
 	float D;
-	XMStoreFloat(&D, XMVector3Dot(-pNorm, vert0));
+	XMStoreFloat(&D, -XMVector3Dot(pNorm, vert0));
 
 	// Step 3: Calculate full equation
 	float PNormDotPointPos = 0.0f, PNormDotVert0 = 0.0f;
