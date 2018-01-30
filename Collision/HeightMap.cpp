@@ -659,7 +659,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 
 	// Step 1: Calculate |COLNORM| 
 	// (Plane normal of triangle)
-	XMVECTOR tNormal = XMVector3Cross(vert1 - vert0, vert2 - vert0);
+	XMVECTOR tNormal = XMVector3Cross(vert2 - vert0, vert2 - vert1);
 	colNormN = XMVector3Normalize(tNormal);
 	XMVECTOR normRayDir = XMVector3Normalize(rayDir);
 
@@ -673,26 +673,24 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	// Step 2: Use |COLNORM| and any vertex on the triangle to calculate D
 	float dotProd;
 	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, vert0));
-	// Step 3: Calculate the denominator of the COLDIST equation: (|COLNORM| dot |RAYDIR|) and "early out" (return false) if it is 0
+	const float D = -dotProd;
 
-	if (dotProd == 0.0f)
+	// Step 3: Calculate the denominator of the COLDIST equation: (|COLNORM| dot |RAYDIR|) and "early out" (return false) if it is 0
+	float denominator;
+	XMStoreFloat(&denominator, XMVector3Dot(colNormN, normRayDir));
+
+	if (denominator == 0.0f)
 	{
 		return false;
 	}
-
-	const float D = -dotProd;
 	// ...
 
 	// Step 4: Calculate the numerator of the COLDIST equation: -(D+(|COLNORM| dot RAYPOS))
 	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, rayPos));
 	float colDistNumerator = -(D + dotProd);
-	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, normRayDir));
 
 	// Step 5: Calculate COLDIST and "early out" again if COLDIST is behind RAYDIR
-	colDist = colDistNumerator / dotProd;
-
-	// ...
-
+	colDist = colDistNumerator / denominator;
 	if (colDist < 0)
 	{
 		return false;
@@ -703,8 +701,8 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 	// Step 6: Use COLDIST to calculate COLPOS
 	colPos = normRayDir * colDist + rayPos;
 	XMStoreFloat(&dotProd, XMVector3Dot(colNormN, colPos));
-	if (dotProd + D < 0)
-		return false;
+	//if (dotProd + D < 0)
+	//	return false;
 	// ...
 
 	// Part 2: Work out if the intersection point falls within the triangle
@@ -716,7 +714,7 @@ bool HeightMap::RayTriangle(const XMVECTOR& vert0, const XMVECTOR& vert1, const 
 
 
 	// Move the ray backwards by a tiny bit (one unit) in case the ray is already on the plane
-	XMVECTOR rAdjusted = colPos - normRayDir;
+	XMVECTOR rAdjusted = colPos - (2 * normRayDir);
 
 	// ...
 
